@@ -1,0 +1,5 @@
+- cd4_t_cell: p = 0.0133 (differs significantly at alpha=0.05); responders have higher median relative frequency (30.22% vs 29.66%).
+- b_cell: p = 0.0557 (does not differ significantly at alpha=0.05); responders have lower median relative frequency (9.43% vs 9.79%).
+- nk_cell: p = 0.1211 (does not differ significantly at alpha=0.05); responders have lower median relative frequency (14.51% vs 14.80%).
+- monocyte: p = 0.1631 (does not differ significantly at alpha=0.05); responders have lower median relative frequency (19.61% vs 19.94%).
+- cd8_t_cell: p = 0.6391 (does not differ significantly at alpha=0.05); responders have higher median relative frequency (24.73% vs 24.60%).
