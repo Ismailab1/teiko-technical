@@ -160,9 +160,28 @@ Full breakdowns: `outputs/part4_baseline_by_project.csv`,
 
 ## Dashboard
 
-`make dashboard` runs `streamlit run dashboard/app.py`, presenting three
-tabs: the Part 2 frequency table (filterable by sample/population), the
-Part 3 boxplots and significance table, and Part 4's baseline breakdown
-with the B cell average.
+`make dashboard` runs `streamlit run dashboard/app.py`. It's built for
+verification, not just display — every tab shows the reasoning behind its
+numbers, not just the numbers:
+
+- **Data Quality** — dataset overview (project/subject/sample counts) plus
+  six integrity checks that re-run live against the database on every page
+  load (sample uniqueness, exactly 5 population rows per sample, per-sample
+  percentages summing to 100%, subject-level fields constant per subject,
+  no unexpected nulls, DB row count matching the source CSV row-for-row).
+- **Part 2: Frequencies** — the tidy table, filterable by sample/population,
+  with the exact SQL/formula behind it shown in an expander and a CSV
+  download button.
+- **Part 3: Responder Comparison** — the boxplots, the exact subset query,
+  a significance-threshold slider that recomputes the verdict live, and a
+  per-population raw-data view (downloadable) so the p-values can be
+  cross-checked in Excel/R independently of this codebase.
+- **Part 4: Subset Explorer** — the required baseline breakdown plus the
+  B cell answer, and below that, the same query logic exposed as live
+  filters (condition/sample type/treatment/timepoint) so you can point it
+  at any other subset and confirm it isn't hardcoded to only the required
+  case.
+
+Every table on every tab has a CSV download button.
 
 Live link: https://teiko-technical-ktfspx47mungbqpdzj5cxl.streamlit.app/

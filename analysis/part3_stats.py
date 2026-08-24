@@ -28,24 +28,21 @@ except ImportError:
 POPULATIONS = ["b_cell", "cd8_t_cell", "cd4_t_cell", "nk_cell", "monocyte"]
 ALPHA = 0.05
 
+METADATA_QUERY = """
+SELECT sa.sample_id AS sample, sa.response, sa.sample_type, sa.treatment,
+       su.condition
+FROM samples sa
+JOIN subjects su ON sa.subject_id = su.subject_id
+WHERE su.condition = 'melanoma'
+  AND sa.sample_type = 'PBMC'
+  AND sa.treatment = 'miraclib'
+  AND sa.response IN ('yes', 'no')
+"""
+
 
 def get_melanoma_pbmc_miraclib(conn):
     freqs = compute_frequencies(conn)
-
-    meta = pd.read_sql(
-        """
-        SELECT sa.sample_id AS sample, sa.response, sa.sample_type, sa.treatment,
-               su.condition
-        FROM samples sa
-        JOIN subjects su ON sa.subject_id = su.subject_id
-        WHERE su.condition = 'melanoma'
-          AND sa.sample_type = 'PBMC'
-          AND sa.treatment = 'miraclib'
-          AND sa.response IN ('yes', 'no')
-        """,
-        conn,
-    )
-
+    meta = pd.read_sql(METADATA_QUERY, conn)
     merged = freqs.merge(meta, on="sample")
     merged["response_label"] = merged["response"].map({"yes": "responder", "no": "non-responder"})
     return merged
