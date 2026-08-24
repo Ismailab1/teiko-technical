@@ -74,6 +74,9 @@ def run_stats(merged):
 
 
 def make_boxplots(merged, out_path):
+    import numpy as np
+
+    np.random.seed(0)  # deterministic jitter in the stripplot overlay, for reproducible output
     fig, axes = plt.subplots(1, len(POPULATIONS), figsize=(20, 5), sharey=False)
     for ax, pop in zip(axes, POPULATIONS):
         sub = merged[merged["population"] == pop]
