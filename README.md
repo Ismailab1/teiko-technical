@@ -25,7 +25,7 @@ make dashboard   # streamlit run dashboard/app.py
 This works unattended in a fresh GitHub Codespace: clone, `make setup`,
 `make pipeline`, `make dashboard`.
 
-**Live dashboard:** _pending deployment — see Dashboard section below._
+**Live dashboard:** https://teiko-technical-ktfspx47mungbqpdzj5cxl.streamlit.app/
 
 ## Database Schema
 
@@ -165,4 +165,4 @@ tabs: the Part 2 frequency table (filterable by sample/population), the
 Part 3 boxplots and significance table, and Part 4's baseline breakdown
 with the B cell average.
 
-Live link: _pending deployment — see top of Setup & Run for status._
+Live link: https://teiko-technical-ktfspx47mungbqpdzj5cxl.streamlit.app/
