@@ -16,12 +16,16 @@ except ImportError:
 
 
 def compute_frequencies(conn):
+    """Full-precision percentages -- not rounded here, since Part 3's
+    statistical tests consume this directly. Rounding is applied only at
+    display/export time (see main() below and the dashboard), so it never
+    perturbs a computed p-value."""
     cell_counts = pd.read_sql(
         "SELECT sample_id AS sample, population, count FROM cell_counts", conn
     )
     totals = cell_counts.groupby("sample")["count"].sum().rename("total_count")
     result = cell_counts.merge(totals, on="sample")
-    result["percentage"] = (result["count"] / result["total_count"] * 100).round(4)
+    result["percentage"] = result["count"] / result["total_count"] * 100
     result = result[["sample", "total_count", "population", "count", "percentage"]]
     return result.sort_values(["sample", "population"]).reset_index(drop=True)
 
@@ -33,9 +37,11 @@ def main():
 
     out_dir = db.ensure_outputs_dir()
     out_path = out_dir / "part2_frequencies.csv"
-    result.to_csv(out_path, index=False)
-    print(f"Wrote {len(result)} rows to {out_path}")
-    print(result.head())
+    export = result.copy()
+    export["percentage"] = export["percentage"].round(4)
+    export.to_csv(out_path, index=False)
+    print(f"Wrote {len(export)} rows to {out_path}")
+    print(export.head())
 
 
 if __name__ == "__main__":

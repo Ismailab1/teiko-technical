@@ -130,6 +130,22 @@ with tab_design:
             "answers 'give me every population for one sample' and 'give me "
             "one population across every sample' without reshaping."
         )
+    with st.expander("Why isn't percentage rounded until the very last step?"):
+        st.markdown(
+            "`compute_frequencies()` -- the function both this table and "
+            "Part 3's statistical test are built on -- returns full "
+            "float64 precision. Rounding to 4 decimals happens only when "
+            "writing the CSV or rendering this table, never before. "
+            "Rounding earlier would have fed a slightly perturbed value "
+            "into the Mann-Whitney U test in Part 3: the test operates on "
+            "ranks, so rounding two very close percentages to the same "
+            "4-decimal value can silently create a tied rank that wouldn't "
+            "exist at full precision, nudging the tie-correction term in "
+            "the p-value. The effect is tiny here (differences appear only "
+            "in the 5th decimal of each p-value, changing no conclusion), "
+            "but there's no reason to accept even a tiny, avoidable "
+            "distortion of a statistical test for a display convenience."
+        )
 
     st.divider()
     st.subheader("Part 3: Statistical comparison")
@@ -338,6 +354,7 @@ with tab2:
         )
 
     freq_df = compute_frequencies(conn)
+    freq_df["percentage"] = freq_df["percentage"].round(4)
 
     samples = sorted(freq_df["sample"].unique())
     selected_samples = st.multiselect("Filter by sample (leave empty for all)", samples)

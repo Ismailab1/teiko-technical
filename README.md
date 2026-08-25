@@ -18,9 +18,10 @@ make dashboard   # streamlit run dashboard/app.py
 - `make pipeline` builds `cell_counts.db` from `cell-count.csv` (drops and
   recreates the DB each run, so it's safe to re-run) and writes every
   Part 2/3/4 result as a CSV/PNG under `outputs/`.
-- `make dashboard` starts a local Streamlit server presenting all three
-  parts interactively. Run `make pipeline` at least once first so the DB
-  exists.
+- `make dashboard` starts a local Streamlit server presenting the design
+  rationale, live data-quality checks, and all three analysis parts
+  interactively (see Dashboard section below). It builds `cell_counts.db`
+  itself on first load if `make pipeline` hasn't been run yet.
 
 This works unattended in a fresh GitHub Codespace: clone, `make setup`,
 `make pipeline`, `make dashboard`.
@@ -164,6 +165,13 @@ Full breakdowns: `outputs/part4_baseline_by_project.csv`,
 verification, not just display — every tab shows the reasoning behind its
 numbers, not just the numbers:
 
+- **Design Decisions** — the reasoning behind the schema, each analysis
+  part, and the dashboard itself: why the schema is normalized and how it
+  scales, why `total_count`/`percentage` are defined the way they are, why
+  Mann-Whitney U over Welch's t-test, why PBMC-only and blank-response
+  exclusion in Part 3, why samples vs. distinct subjects are counted
+  differently in Part 4, and why the B cell question isn't PBMC/miraclib-
+  restricted.
 - **Data Quality** — dataset overview (project/subject/sample counts) plus
   six integrity checks that re-run live against the database on every page
   load (sample uniqueness, exactly 5 population rows per sample, per-sample
