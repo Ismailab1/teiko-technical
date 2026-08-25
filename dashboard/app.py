@@ -57,14 +57,165 @@ def download_button(df, label, filename, key=None):
     )
 
 
-tab_quality, tab2, tab3, tab4 = st.tabs(
+tab_design, tab_quality, tab2, tab3, tab4 = st.tabs(
     [
+        "Design Decisions",
         "Data Quality",
         "Part 2: Frequencies",
         "Part 3: Responder Comparison",
         "Part 4: Subset Explorer",
     ]
 )
+
+# ---------------------------------------------------------------- Design Decisions
+with tab_design:
+    st.header("Design decisions")
+    st.caption(
+        "The reasoning behind each part of this project -- not just what was "
+        "built, but why, and what the alternative would have cost."
+    )
+
+    st.subheader("Database schema")
+    st.markdown(
+        "Normalized into `projects -> subjects -> samples -> cell_counts` "
+        "rather than one wide table."
+    )
+    with st.expander("Why normalize instead of one flat table?"):
+        st.markdown(
+            "- Subject-level facts (condition, age, sex) live on `subjects`, "
+            "not repeated across a subject's 3 samples, so they can't drift "
+            "out of sync.\n"
+            "- `treatment` and `response` live on `samples`, not `subjects`, "
+            "even though they're constant per subject in this snapshot. "
+            "They're trial-arm/readout concepts that could legitimately vary "
+            "by sample in future data (a subject switching arms, or a "
+            "response readout assessed per timepoint). Modeling them one "
+            "level down keeps the schema correct as the data model matures, "
+            "at the cost of a little redundancy today.\n"
+            "- `cell_counts` is long/tidy (one row per sample x population) "
+            "instead of one column per population. Adding a 6th, 7th, ... "
+            "cell population later needs zero schema migration and zero "
+            "loader code changes -- just more rows. It also makes every "
+            "downstream query a plain `GROUP BY`/`JOIN` instead of bespoke "
+            "per-column logic."
+        )
+    with st.expander("How does this scale to hundreds of projects / thousands of samples?"):
+        st.markdown(
+            "1. Move from SQLite to Postgres for concurrent writes and "
+            "multi-user access -- the schema is already vanilla relational "
+            "SQL and ports over unchanged.\n"
+            "2. Add a `populations` reference table once population "
+            "definitions carry more metadata than just a name (marker "
+            "panels, gating hierarchy).\n"
+            "3. Precompute a `sample_frequencies` table refreshed on load if "
+            "the Part 2 computation becomes a query-time bottleneck.\n"
+            "4. Add a `batches`/`ingestion_runs` table if data starts "
+            "arriving incrementally rather than as one full-file load, so "
+            "the loader can append instead of drop-and-recreate."
+        )
+
+    st.divider()
+    st.subheader("Part 2: Frequency table")
+    st.markdown(
+        "`total_count` is defined as the sum of the five given population "
+        "counts for that sample -- the CSV has no separate total column, so "
+        "this is the only total that's actually derivable from the data."
+    )
+    with st.expander("Why long/tidy format instead of one row per sample?"):
+        st.markdown(
+            "One row per sample x population (52,500 rows for 10,500 "
+            "samples) instead of one row per sample with 5 percentage "
+            "columns. This mirrors the `cell_counts` table shape, makes "
+            "filtering by population trivial, and means the same table "
+            "answers 'give me every population for one sample' and 'give me "
+            "one population across every sample' without reshaping."
+        )
+
+    st.divider()
+    st.subheader("Part 3: Statistical comparison")
+    with st.expander("Why Mann-Whitney U instead of Welch's t-test?"):
+        st.markdown(
+            "The values compared are per-sample relative frequencies -- "
+            "bounded proportions in [0, 100] -- not raw counts, and there's "
+            "no reason to assume they're normally distributed (the boxplots "
+            "show visible outliers in every population). Mann-Whitney U is "
+            "a non-parametric, rank-based test that doesn't require that "
+            "assumption and is robust to those outliers, at the cost of "
+            "some statistical power versus a t-test if the data actually "
+            "were normal. Given the sample sizes here (975-993 per group), "
+            "that power cost is negligible."
+        )
+    with st.expander("Why PBMC-only, and why exclude blank response?"):
+        st.markdown(
+            "PBMC-only is a direct requirement of the assignment (whole "
+            "blood samples are a different compartment and would confound "
+            "the comparison). Blank `response` values correspond to "
+            "`treatment == 'none'` (e.g. healthy controls) -- there's no "
+            "responder/non-responder label to compare for those samples, so "
+            "they're excluded rather than silently coerced into one group."
+        )
+    with st.expander("Why a boxplot with individual points overlaid, not just a box?"):
+        st.markdown(
+            "A bare boxplot hides sample size and distribution shape -- two "
+            "populations can produce visually identical boxes from very "
+            "different underlying data. The jittered strip of individual "
+            "points overlaid on each box lets a reviewer see the actual "
+            "spread, density, and outliers, not just the five-number "
+            "summary. The jitter's random seed is fixed so the same figure "
+            "is produced on every pipeline run (verified byte-identical "
+            "across repeated runs) -- otherwise a re-run would produce a "
+            "cosmetically different image for identical underlying data, "
+            "which would undermine trust in the artifact even though "
+            "nothing had actually changed."
+        )
+
+    st.divider()
+    st.subheader("Part 4: Subset analysis")
+    with st.expander("Why are samples and subjects counted differently?"):
+        st.markdown(
+            "'Samples per project' counts sample rows directly -- a project "
+            "can contribute multiple samples. 'Responders/non-responders' "
+            "and 'males/females' are counted by **distinct subject**, "
+            "de-duplicating a subject's samples first. Counting those by "
+            "raw sample row would inflate the count for any subject "
+            "contributing more than one sample to the subset and answer a "
+            "different question ('how many samples' vs 'how many people')."
+        )
+    with st.expander("Why isn't the B cell average restricted to PBMC/miraclib?"):
+        st.markdown(
+            "The assignment names the PBMC/miraclib restriction explicitly "
+            "for the baseline-subset breakdown, but not for this specific "
+            "question ('across all sample types and treatments' is stated "
+            "directly). Read literally, that's a deliberately broader "
+            "question than the subset above it, not an oversight -- so it's "
+            "computed against melanoma + male + responder + time=0 only, "
+            "with no sample_type/treatment filter."
+        )
+    with st.expander("Why add an interactive filter explorer beyond the required subset?"):
+        st.markdown(
+            "The required baseline breakdown is one fixed query. The filter "
+            "explorer below it runs the identical query pattern against "
+            "whatever condition/sample type/treatment/timepoint combination "
+            "is selected, which demonstrates the underlying logic is a "
+            "general-purpose query rather than a value hardcoded to produce "
+            "the one expected answer -- and it's how the "
+            "carcinoma/WB/phauximab/t=7 -> 190-sample result quoted "
+            "elsewhere in this project was cross-checked against an "
+            "independent pandas computation."
+        )
+
+    st.divider()
+    st.subheader("Verification tooling (this dashboard)")
+    with st.expander("Why build verification into the dashboard instead of just trusting the pipeline?"):
+        st.markdown(
+            "A number without a visible derivation asks the reader to trust "
+            "it on faith. Every subset shown here exposes the SQL query "
+            "that produced it, every table is downloadable to check "
+            "independently, and the Data Quality tab re-runs its checks "
+            "live against the database on every page load rather than "
+            "asserting them once in a README that can drift out of date as "
+            "the code changes."
+        )
 
 # ---------------------------------------------------------------- Data Quality
 with tab_quality:
